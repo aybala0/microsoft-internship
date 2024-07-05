@@ -3,7 +3,7 @@ import seaborn as sns
 import pandas as pd
 
 #reading the csv file
-filepath = "../microsoft-internship/MSFT_2006-01-01_to_2018-01-01.csv"
+filepath = "../microsoft-internship/data/MSFT_2006-01-01_to_2018-01-01.csv"
 data = pd.read_csv(filepath)
 data = data.sort_values('Date') 
 data.head()
