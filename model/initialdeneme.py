@@ -17,4 +17,3 @@ plt.title("Microsoft Stock Price",fontsize=18, fontweight='bold')
 plt.xlabel('Date',fontsize=18) 
 plt.ylabel('Close Price (USD)',fontsize=18)
 plt.show()
-
