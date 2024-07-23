@@ -11,8 +11,18 @@ import math
 import plotly.express as px
 import plotly.graph_objects as go
 
+# Set the random seed for reproducibility
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+set_seed(2000)  # You can use any number you like
 
 #reading the csv file
+#filepath = "/Users/student/cs/microsoft/microsoft-internship/data/AMZN_2006-01-01_to_2018-01-01.csv"
 filepath = "/Users/student/cs/microsoft/microsoft-internship/data/MSFT_2006-01-01_to_2018-01-01.csv"
 data = pd.read_csv(filepath)
 data = data.sort_values('Date') 
@@ -96,15 +106,13 @@ y_test_lstm = torch.from_numpy(y_test).type(torch.Tensor)
 
 #constants for the neural network
 input_dim = 1
-hidden_dim = 40
+hidden_dim = 16
 num_layers = 2
 output_dim = 1
 num_epochs = 100
 
 #defining the neural network
 class LSTM(nn.Module):
-    
-
     """
     Constructor for the lstm nn
     """
@@ -128,9 +136,6 @@ model = LSTM(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim, 
 criterion = torch.nn.MSELoss(reduction='mean')
 optimiser = torch.optim.Adam(model.parameters(), lr = 0.01)
 
-
-#12
-
 #data for the loss between epochs graph
 hist = np.zeros(num_epochs)
 
@@ -153,16 +158,11 @@ for t in range(num_epochs):
 training_time = time.time()-start_time
 print("Training time: {}".format(training_time))
 
-
 predict = pd.DataFrame(scaler.inverse_transform(y_train_pred.detach().numpy()))
 original = pd.DataFrame(scaler.inverse_transform(y_train_lstm.detach().numpy()))
 
 #plotting the graphs
-
 #first graph is for the accuracy between model prediction and training data
-
-
-#sns.set_style("darkgrid")    
 
 fig = plt.figure()
 fig.subplots_adjust(hspace=0.2, wspace=0.2)
@@ -235,6 +235,9 @@ fig.add_trace(go.Scatter(x=result.index, y=result[1],
 fig.add_trace(go.Scatter(go.Scatter(x=result.index, y=result[2],
                     mode='lines',
                     name='Actual Value')))
+fig.add_trace(go.Scatter(go.Scatter(x=result.index, y=result[2],
+                    mode='lines',
+                    name= str(hidden_dim) + str(num_layers) + str(num_epochs))))
 fig.update_layout(
     xaxis=dict(
         showline=True,
