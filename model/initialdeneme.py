@@ -16,10 +16,14 @@ def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     np.random.seed(seed)
+
+    #to reach same results every time
     torch.backends.cudnn.deterministic = True
+
+    #do not find the best algorithm
     torch.backends.cudnn.benchmark = False
 
-set_seed(2000)  # You can use any number you like
+set_seed(2000)  #this can be modified
 
 #reading the csv file
 #filepath = "/Users/student/cs/microsoft/microsoft-internship/data/AMZN_2006-01-01_to_2018-01-01.csv"
