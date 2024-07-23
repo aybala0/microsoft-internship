@@ -2,10 +2,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
 import numpy as np
 import torch
 import torch.nn as nn
 import time
+import math
+import plotly.express as px
+import plotly.graph_objects as go
+
 
 #reading the csv file
 filepath = "/Users/student/cs/microsoft/microsoft-internship/data/MSFT_2006-01-01_to_2018-01-01.csv"
@@ -31,13 +36,6 @@ price = data[['Close']]
 scaler = MinMaxScaler(feature_range=(-1, 1))
 price['Close'] = scaler.fit_transform(price['Close'].values.reshape(-1,1))
 
-
-'''
-Split Data
-
-Input:
-    []
-'''
 def split_data(stock, lookback):
 
     data_raw = stock.to_numpy()
@@ -76,7 +74,7 @@ def split_data(stock, lookback):
 
 #calling the above function "split_data" 
 #choose lookback size
-lookback = 100
+lookback = 20
 x_train, y_train, x_test, y_test = split_data(price, lookback)
 
 """
@@ -98,7 +96,7 @@ y_test_lstm = torch.from_numpy(y_test).type(torch.Tensor)
 
 #constants for the neural network
 input_dim = 1
-hidden_dim = 32
+hidden_dim = 40
 num_layers = 2
 output_dim = 1
 num_epochs = 100
@@ -131,13 +129,16 @@ criterion = torch.nn.MSELoss(reduction='mean')
 optimiser = torch.optim.Adam(model.parameters(), lr = 0.01)
 
 
-
-
 #12
+
+#data for the loss between epochs graph
 hist = np.zeros(num_epochs)
+
+#we want to time how much it takes to train the model
 start_time = time.time()
 lstm = []
 
+#training occurs
 for t in range(num_epochs):
     y_train_pred = model(x_train)
 
@@ -151,14 +152,17 @@ for t in range(num_epochs):
     
 training_time = time.time()-start_time
 print("Training time: {}".format(training_time))
-##
 
-#13
+
 predict = pd.DataFrame(scaler.inverse_transform(y_train_pred.detach().numpy()))
 original = pd.DataFrame(scaler.inverse_transform(y_train_lstm.detach().numpy()))
 
-import seaborn as sns
-sns.set_style("darkgrid")    
+#plotting the graphs
+
+#first graph is for the accuracy between model prediction and training data
+
+
+#sns.set_style("darkgrid")    
 
 fig = plt.figure()
 fig.subplots_adjust(hspace=0.2, wspace=0.2)
@@ -171,7 +175,7 @@ ax.set_xlabel("Days", size = 14)
 ax.set_ylabel("Cost (USD)", size = 14)
 ax.set_xticklabels('', size=10)
 
-
+#second graph for the loss between each epoch
 plt.subplot(1, 2, 2)
 ax = sns.lineplot(data=hist, color='royalblue')
 ax.set_xlabel("Epoch", size = 14)
@@ -182,4 +186,95 @@ fig.set_figwidth(16)
 plt.show()
 
 
+#make predictions
+y_test_pred = model(x_test)
 
+#invert predictions
+y_train_pred = scaler.inverse_transform(y_train_pred.detach().numpy())
+y_train = scaler.inverse_transform(y_train_lstm.detach().numpy())
+y_test_pred = scaler.inverse_transform(y_test_pred.detach().numpy())
+y_test = scaler.inverse_transform(y_test_lstm.detach().numpy())
+
+
+#bence burayı yapmamıza gerek yok
+#calculate root mean squared error
+trainScore = math.sqrt(mean_squared_error(y_train[:,0], y_train_pred[:,0]))
+print('Train Score: %.2f RMSE' % (trainScore))
+testScore = math.sqrt(mean_squared_error(y_test[:,0], y_test_pred[:,0]))
+print('Test Score: %.2f RMSE' % (testScore))
+lstm.append(trainScore)
+lstm.append(testScore)
+lstm.append(training_time)
+
+# shift train predictions for plotting
+trainPredictPlot = np.empty_like(price)
+trainPredictPlot[:, :] = np.nan
+trainPredictPlot[lookback:len(y_train_pred)+lookback, :] = y_train_pred
+
+# shift test predictions for plotting
+testPredictPlot = np.empty_like(price)
+testPredictPlot[:, :] = np.nan
+testPredictPlot[len(y_train_pred)+lookback-1:len(price)-1, :] = y_test_pred
+
+original = scaler.inverse_transform(price['Close'].values.reshape(-1,1))
+
+predictions = np.append(trainPredictPlot, testPredictPlot, axis=1)
+predictions = np.append(predictions, original, axis=1)
+result = pd.DataFrame(predictions)
+
+
+#final figure
+
+fig = go.Figure()
+fig.add_trace(go.Scatter(go.Scatter(x=result.index, y=result[0],
+                    mode='lines',
+                    name='Train prediction')))
+fig.add_trace(go.Scatter(x=result.index, y=result[1],
+                    mode='lines',
+                    name='Test prediction'))
+fig.add_trace(go.Scatter(go.Scatter(x=result.index, y=result[2],
+                    mode='lines',
+                    name='Actual Value')))
+fig.update_layout(
+    xaxis=dict(
+        showline=True,
+        showgrid=True,
+        showticklabels=False,
+        linecolor='white',
+        linewidth=2
+    ),
+    yaxis=dict(
+        title_text='Close (USD)',
+        titlefont=dict(
+            family='Rockwell',
+            size=12,
+            color='white',
+        ),
+        showline=True,
+        showgrid=True,
+        showticklabels=True,
+        linecolor='white',
+        linewidth=2,
+        ticks='outside',
+        tickfont=dict(
+            family='Rockwell',
+            size=12,
+            color='white',
+        ),
+    ),
+    showlegend=True,
+    template = 'plotly_dark'
+
+)
+
+annotations = []
+annotations.append(dict(xref='paper', yref='paper', x=0.0, y=1.05,
+                              xanchor='left', yanchor='bottom',
+                              text='Results (LSTM)',
+                              font=dict(family='Rockwell',
+                                        size=26,
+                                        color='white'),
+                              showarrow=False))
+fig.update_layout(annotations=annotations)
+
+fig.show()
