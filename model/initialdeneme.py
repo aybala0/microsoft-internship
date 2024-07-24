@@ -23,11 +23,13 @@ def set_seed(seed):
     #do not find the best algorithm
     torch.backends.cudnn.benchmark = False
 
-set_seed(2000)  #this can be modified
+set_seed(100)  #this can be modified
 
 #reading the csv file
 #filepath = "/Users/student/cs/microsoft/microsoft-internship/data/AMZN_2006-01-01_to_2018-01-01.csv"
-filepath = "/Users/student/cs/microsoft/microsoft-internship/data/MSFT_2006-01-01_to_2018-01-01.csv"
+#filepath = "/Users/student/cs/microsoft/microsoft-internship/data/MSFT_2006-01-01_to_2018-01-01.csv"
+filepath = "/Users/student/cs/microsoft/microsoft-internship/data/MSFT.csv"
+
 data = pd.read_csv(filepath)
 data = data.sort_values('Date') 
 data.head()
@@ -110,10 +112,10 @@ y_test_lstm = torch.from_numpy(y_test).type(torch.Tensor)
 
 #constants for the neural network
 input_dim = 1
-hidden_dim = 16
+hidden_dim = 64
 num_layers = 2
 output_dim = 1
-num_epochs = 100
+num_epochs = 300
 
 #defining the neural network
 class LSTM(nn.Module):
